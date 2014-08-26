@@ -32,9 +32,11 @@ logging.getLogger('trollius').addHandler(logging.StreamHandler())
 #isPlaying = False
 class MusicPlayer:
 	isPlaying = False
+	
         def __init__(self):
 		print "dasf"
-		q = Queue.Queue()
+		self.q = Queue.Queue()
+		
 
 	#@staticmethod
 	def play_music(self,fmusic,songList):
@@ -56,17 +58,19 @@ class MusicPlayer:
 				pygame.mixer.music.play()
 				MusicPlayer.isPlaying = True
 	  	if len(songList) > 1 :
-			
-			q.put(fmusic)
+			print "enter songlist>1"
+			self.q.put(fmusic)
 			pygame.init()
 			pygame.mixer.init()
 			if not MusicPlayer.isPlaying:
+				print "multi-songs start playing"
 				MusicPlayer.isPlaying = True
 				for i in range(0,len(songList)):
-					print "enter"
-					
-					pygame.mixer.music.load(q.get())
+					print "start play one song of multisongs"
+					print "len(songList),i",len(songList),i
+					pygame.mixer.music.load(self.q.get())
 					pygame.mixer.music.play()
+					pygame.mixer.music.stop()
 				
 
 class SongHandler:
@@ -141,6 +145,7 @@ class SongHandler:
 	    txt = open(self.ffreq)
 	    print "open txt successfully",self.ffreq
 	    data = [float(line.split()[1])for line in txt]
+	    print "dasfdaaaa"
 	    for j in data:
 		freq.append(j)
 	    avefq = int(sum(freq)/len(freq))  
@@ -153,6 +158,7 @@ class SongHandler:
 	    for i in range(0,3):
 		if startingColors[i]<0:
 			startingColors[i]=6
+	    #startingColors = [5,5,5]
 
     	    self.thread.start()  
 	    print "enter playFunction"  

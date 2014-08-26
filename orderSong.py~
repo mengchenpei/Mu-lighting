@@ -50,7 +50,7 @@ class SongHandler:
     def onSongResponse(self, interest, data):
 	print("Whiling listening the music, you can do something else:")
         print("1.To pause, please type in '1'")
-        print("2.To resume, please type in '2'")
+        print("2.To play, please type in '2'")
 	print("3.To change to another song, please type in the song name")
 	
         cmd = raw_input(">>")
