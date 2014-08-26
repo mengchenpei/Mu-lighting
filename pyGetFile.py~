@@ -163,7 +163,7 @@ class GetFile:
         self.fetchData(Name(self._dataName).appendSegment(self.m_nextSegment))
         
     def onTimeout(self,interest):
-        MAX_RETRY = 1  
+        MAX_RETRY = 3  
         self.m_retryCount += 1
         if(self.m_retryCount <= MAX_RETRY):
             self.fetchData(interest.getName())

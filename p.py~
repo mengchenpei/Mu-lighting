@@ -28,18 +28,17 @@ logging.getLogger('trollius').addHandler(logging.StreamHandler())
 
 
 
-
+q = Queue.Queue()
 #isPlaying = False
 class MusicPlayer:
 	isPlaying = False
         def __init__(self):
 		print "dasf"
-		q = Queue.Queue()
 
 	#@staticmethod
 	def play_music(self,fmusic,songList):
 		print"songlist leng:",len(songList)
-		if len(songList) == 1 :
+		if len(songList)==1 :
 	    		print "enter len=1"
 	    		if not MusicPlayer.isPlaying:
 				print "enter playing",fmusic
@@ -55,8 +54,7 @@ class MusicPlayer:
 				pygame.mixer.music.load(fmusic)
 				pygame.mixer.music.play()
 				MusicPlayer.isPlaying = True
-	  	if len(songList) > 1 :
-			
+	  	else:
 			q.put(fmusic)
 			pygame.init()
 			pygame.mixer.init()
@@ -89,8 +87,6 @@ class SongHandler:
 	self.song = ""
 	self.ftxt = ""
 	self.ffreq = ""
-
-	self.songList = ""
 
 	
 
