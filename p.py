@@ -35,42 +35,48 @@ class MusicPlayer:
 	
         def __init__(self):
 		print "dasf"
-		self.q = Queue.Queue()
+		
+		pygame.init()
+		pygame.mixer.init()
 		
 
 	#@staticmethod
-	def play_music(self,fmusic,songList):
+	def play_music(self,fmusic,songList,queue):
 		print"songlist leng:",len(songList)
+	
 		if len(songList) == 1 :
 	    		print "enter len=1"
 	    		if not MusicPlayer.isPlaying:
 				print "enter playing",fmusic
 				#play the music
-				pygame.init()
-				pygame.mixer.init()
+				MusicPlayer.isPlaying = True
 				pygame.mixer.music.load(fmusic)
 				pygame.mixer.music.play()
-				MusicPlayer.isPlaying = True
+				MusicPlayer.isPlaying = False
 	    		else:
 				print "I will stop the music and play another one"
 				pygame.mixer.music.stop()
+				MusicPlayer.isPlaying = True
 				pygame.mixer.music.load(fmusic)
 				pygame.mixer.music.play()
-				MusicPlayer.isPlaying = True
+				MusicPlayer.isPlaying = False
 	  	if len(songList) > 1 :
 			print "enter songlist>1"
-			self.q.put(fmusic)
-			pygame.init()
-			pygame.mixer.init()
+			
 			if not MusicPlayer.isPlaying:
 				print "multi-songs start playing"
 				MusicPlayer.isPlaying = True
-				for i in range(0,len(songList)):
+				print "queue:",queue
+				while not queue.empty():
+					i = queue.get()
 					print "start play one song of multisongs"
-					print "len(songList),i",len(songList),i
-					pygame.mixer.music.load(self.q.get())
+					print "len(songList)",len(songList)
+					
+					print "get():",i						
+					pygame.mixer.music.load(i)
 					pygame.mixer.music.play()
 					pygame.mixer.music.stop()
+				MusicPlayer.isPlaying = False
 				
 
 class SongHandler:
@@ -95,7 +101,12 @@ class SongHandler:
 	self.ffreq = ""
 
 	self.songList = ""
+	self.mp = MusicPlayer()
+	self.config = RawConfigParser()
+	self.config.read('config.cfg')
+	self.s = LightMessenger(self.config)
 
+	self.q = Queue.Queue()
 	
 
     def start(self):
@@ -118,19 +129,6 @@ class SongHandler:
 
     def playFunction(self):
 
-	    print "playerfunction"
-	    config = RawConfigParser()
-	    config.read('config.cfg')
-	    s = LightMessenger(config)
-	    print "aftrt init playerfunction"
-		#get the name of song
-	    '''print "please type in the music you want to play:"
-	    f = raw_input(">")
-	    fmusic = f+str(".mp3")
-	    fos = f+str("-o.txt")
-	    ffreq = f+str(".txt")'''
-	    	
-	    print self.ftxt
 	    txt = open(self.ftxt)
 	    print "open txt successfully",self.ftxt
 	
@@ -159,10 +157,13 @@ class SongHandler:
 		if startingColors[i]<0:
 			startingColors[i]=6
 	    #startingColors = [5,5,5]
-
-    	    self.thread.start()  
-	    print "enter playFunction"  
-	    s.start(osDur,startingColors)
+	    self.q.put(self.song+str("-music.mp3") )
+	    print "MusicPlayer.isPlaying",MusicPlayer.isPlaying
+	    if not MusicPlayer.isPlaying:
+    	    	self.thread.start() 
+		#MusicPlayer.isPlaying = True 
+	      
+	    self.s.start(osDur,startingColors)
 
     def getOnset(self):
 	print "getonset"
@@ -203,8 +204,8 @@ class SongHandler:
 		self.ftxt = i + str("-os.txt")
 		self.ffreq = i + str("-freq.txt")
 		print "FMUSIC:",fmusic 
-		mp = MusicPlayer()  
-	    	self.thread = threading.Thread(target = mp.play_music, args = (fmusic,songList,))
+		  
+	    	self.thread = threading.Thread(target = self.mp.play_music, args = (fmusic,songList,self.q,))
 	    	self.thread.daemon = True
             	g = GetFile(self._repoCommandPrefix, i, self._face, self.getOnset)
 		#g = GetFile(self._repoCommandPrefix, ftxt, self._face, self.lightFunction)
