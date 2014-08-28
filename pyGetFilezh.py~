@@ -99,7 +99,7 @@ class GetFile:
         finalBlockId = data.getMetaInfo().getFinalBlockID()
         
         # These comparisons are apparently wrong
-        #print "finalBlockID,Name[-1]",finalBlockId.toEscapedString(), dataName[-1].toSegment()
+        print "finalBlockID,Name[-1]",finalBlockId.toEscapedString(), dataName[-1].toSegment()
         if (finalBlockId == dataName[-1].toSegment()):
             # Reach EOF
             print "INFO: End of file is reached."

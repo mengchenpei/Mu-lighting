@@ -99,7 +99,7 @@ class LightMessenger:
 				#print s.currentColor
 				sendTimeFile.write('{0:f}'.format(self.unix_time_now()) + '\n')
 	 			self.lightFace.expressInterest(self.commands[j], self.onLightingResponse, self.onLightingTimeout)
-				#print"self.commands[j]",self.commands[j].toUri()
+				print"self.commands[j]",self.commands[j].toUri()
 				time.sleep((osDur[i]-osDur[i-1])/2/self.transStates)
 			sendTimeFile.write('{0:f}'.format(self.unix_time_now()) + '\n')
 			self.lightFace.expressInterest(command2, self.onLightingResponse, self.onLightingTimeout)
@@ -108,7 +108,7 @@ class LightMessenger:
 		elif(0.5<diff<1):
 			sendTimeFile.write('{0:f}'.format(self.unix_time_now()) + '\n')
 			self.lightFace.expressInterest(self.commands[2], self.onLightingResponse, self.onLightingTimeout) 
-			#print"self.commands[2]",self.commands[j].toUri()
+			print"self.commands[2]",self.commands[j].toUri()
 			time.sleep((diff)/2)
 			sendTimeFile.write('{0:f}'.format(self.unix_time_now()) + '\n')
 			self.lightFace.expressInterest(self.commands[self.transStates-1], self.onLightingResponse, self.onLightingTimeout)
@@ -117,7 +117,7 @@ class LightMessenger:
 		elif(0.15<diff<0.5):
 			sendTimeFile.write('{0:f}'.format(self.unix_time_now()) + '\n')
 			self.lightFace.expressInterest(self.commands[0], self.onLightingResponse, self.onLightingTimeout) 
-			#print"self.commands[0]",self.commands[j].toUri()
+			print"self.commands[0]",self.commands[j].toUri()
 			time.sleep((diff)/2)
 			sendTimeFile.write('{0:f}'.format(self.unix_time_now()) + '\n')
 			self.lightFace.expressInterest(self.commands[self.transStates-2], self.onLightingResponse, self.onLightingTimeout)

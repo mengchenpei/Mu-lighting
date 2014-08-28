@@ -80,7 +80,7 @@ class GetFile:
         sys.exit(1)
 
     def startFetchingData(self,name):
-	print "start fetching:",name.toUri()
+	#print "start fetching:",name.toUri()
         interest = Interest(name)
         interest.setInterestLifetimeMilliseconds(self._interestLifetime)
         interest.setMustBeFresh(self.m_mustBeFresh)
@@ -96,12 +96,12 @@ class GetFile:
         self._face.expressInterest(interest,self.onData,self.onTimeout)
         
     def onData(self,interest,data):
-        print "receive data from repo"
+        #print "receive data from repo"
         dataName = data.getName()
-        print dataName.toUri()
+        #print dataName.toUri()
         
         if(dataName.size() != self._dataName.size() + 1):
-            print dataName.size(),self._dataName.size()+1
+            #print dataName.size(),self._dataName.size()+1
             raise Exception("unexpected data name size.")
         segment = dataName[-1].toSegment()
 
@@ -135,7 +135,7 @@ class GetFile:
             
     #In PyNDN the first interest's name has a different segment number with other(First:%00,others:%00%xx)            
     def onFirstData(self,interest,data):
-        print "receive first data from repo"
+        #print "receive first data from repo"
         dataName = data.getName()
         if(dataName.size() != self._dataName.size() + 1):
             raise Exception("unexpected data name size.")

@@ -170,11 +170,15 @@ class PutFile:
             print "requested segment does not exist, or is not prepared"
             return
             #sys.exit(1)
+	
         
         item = self._mData[segmentNo]
         
         encodedData = item.wireEncode()
         transport.send(encodedData.toBuffer())
+	'''if (segmentNo == self.fileSize):
+		time.sleep()'''
+		
         
         # TODO: if it's the last segment, call stop after a safe period of time...
         # Or should send check after a safe amount of time, and based on the results 

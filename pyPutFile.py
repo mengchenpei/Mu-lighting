@@ -120,7 +120,7 @@ class PutFile:
             # Original one:
             #d = Data(Name(self._dataName).append(self._currentSegmentNo))
             
-            print "Given data name", d.getName().toUri(), " Segment no", self._currentSegmentNo
+            #print "Given data name", d.getName().toUri(), " Segment no", self._currentSegmentNo
             
             d.setContent(buffer)
             self._keyChain.sign(d, self._certificateName)

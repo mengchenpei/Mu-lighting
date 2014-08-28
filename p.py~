@@ -31,10 +31,10 @@ logging.getLogger('trollius').addHandler(logging.StreamHandler())
 
 #isPlaying = False
 class MusicPlayer:
-	isPlaying = False
+	
 	
         def __init__(self):
-		print "dasf"
+		self._isPlaying = False
 		
 		pygame.init()
 		pygame.mixer.init()
@@ -46,26 +46,24 @@ class MusicPlayer:
 	
 		if len(songList) == 1 :
 	    		print "enter len=1"
-	    		if not MusicPlayer.isPlaying:
+	    		if not self._isPlaying:
 				print "enter playing",fmusic
 				#play the music
-				MusicPlayer.isPlaying = True
+				self._isPlaying = True
 				pygame.mixer.music.load(fmusic)
 				pygame.mixer.music.play()
-				MusicPlayer.isPlaying = False
+				self._isPlaying = False
 	    		else:
 				print "I will stop the music and play another one"
 				pygame.mixer.music.stop()
-				MusicPlayer.isPlaying = True
+				self._isPlaying = True
 				pygame.mixer.music.load(fmusic)
 				pygame.mixer.music.play()
-				MusicPlayer.isPlaying = False
+				self._isPlaying = False
 	  	if len(songList) > 1 :
-			print "enter songlist>1"
-			
-			if not MusicPlayer.isPlaying:
+			if not self._isPlaying:
 				print "multi-songs start playing"
-				MusicPlayer.isPlaying = True
+				self._isPlaying = True
 				print "queue:",queue
 				while not queue.empty():
 					i = queue.get()
@@ -76,7 +74,7 @@ class MusicPlayer:
 					pygame.mixer.music.load(i)
 					pygame.mixer.music.play()
 					pygame.mixer.music.stop()
-				MusicPlayer.isPlaying = False
+				self._isPlaying = False
 				
 
 class SongHandler:
@@ -88,9 +86,11 @@ class SongHandler:
 	self.prefix = self._playPrefix.append(self._device)
         self._face = None
         self._loop = None
-
-	self.thread = None
         
+        self.fmusic = ""
+        self.songList = []
+	self.q = Queue.Queue()
+
         self._keyChain = KeyChain()
         self._certificateName = self._keyChain.getDefaultCertificateName()
 
@@ -105,9 +105,10 @@ class SongHandler:
 	self.config = RawConfigParser()
 	self.config.read('config.cfg')
 	self.s = LightMessenger(self.config)
+	        
+        self.thread = threading.Thread(target = self.mp.play_music, args = (self.fmusic,self.songList,self.q,))
+	self.thread.daemon = True	
 
-	self.q = Queue.Queue()
-	
 
     def start(self):
         self._loop = asyncio.get_event_loop()
@@ -141,13 +142,13 @@ class SongHandler:
 	    	osDur.append(i)
 	    txt.close()
 	    txt = open(self.ffreq)
-	    print "open txt successfully",self.ffreq
+	    
 	    data = [float(line.split()[1])for line in txt]
-	    print "dasfdaaaa"
+	    
 	    for j in data:
 		freq.append(j)
 	    avefq = int(sum(freq)/len(freq))  
-	    print avefq  	
+	     	
 	    txt.close()
 	    g=(avefq-100)/10
 	    r=avefq/30
@@ -156,14 +157,14 @@ class SongHandler:
 	    for i in range(0,3):
 		if startingColors[i]<0:
 			startingColors[i]=6
-	    #startingColors = [5,5,5]
+	    
 	    self.q.put(self.song+str("-music.mp3") )
-	    print "MusicPlayer.isPlaying",MusicPlayer.isPlaying
-	    if not MusicPlayer.isPlaying:
-    	    	self.thread.start() 
-		#MusicPlayer.isPlaying = True 
-	      
-	    self.s.start(osDur,startingColors)
+	    print "MusicPlayer.isPlaying",self.mp._isPlaying
+	    if not self.mp._isPlaying:
+    	    	self.thread.start()
+	    
+            #self.s.start(osDur,startingColors)
+	    
 
     def getOnset(self):
 	print "getonset"
@@ -204,9 +205,7 @@ class SongHandler:
 		self.ftxt = i + str("-os.txt")
 		self.ffreq = i + str("-freq.txt")
 		print "FMUSIC:",fmusic 
-		  
-	    	self.thread = threading.Thread(target = self.mp.play_music, args = (fmusic,songList,self.q,))
-	    	self.thread.daemon = True
+		
             	g = GetFile(self._repoCommandPrefix, i, self._face, self.getOnset)
 		#g = GetFile(self._repoCommandPrefix, ftxt, self._face, self.lightFunction)
             	g.oStream = open(fmusic,'wb')

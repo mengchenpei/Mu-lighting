@@ -61,11 +61,10 @@ class SongHandler:
 	else:
             while True:
 	    	decision = raw_input("Do you want to change your music player? Y/N : ")
-	    	if decision == 'Y'or'y':
+	    	if decision == 'Y' or decision == 'y':
 			self.device = raw_input("Music Player: ")
 			break
-	    	if decision =='N'or'n':
-			self.inDecision = False
+	    	if decision =='N'or decision == 'n':
 			break
 	    	else:
 			print "Please make sure you are typing in Y or N"				

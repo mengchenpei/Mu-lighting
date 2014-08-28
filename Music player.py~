@@ -1,0 +1,224 @@
+import sys
+import time
+import Queue
+
+from ConfigParser import RawConfigParser
+from random import randrange
+
+from pyndn import Name, Data, Interest, ThreadsafeFace, Exclude,Blob, Sha256WithRsaSignature
+from pyndn.security import KeyChain
+from pyGetFilezh import GetFile
+from pyndn.encoding import ProtobufTlv
+
+from LightMessenger import LightMessenger
+
+import trollius as asyncio
+import logging
+import thread, threading
+import pygame
+
+import trollius as asyncio
+from trollius import Return, From
+
+# using one \t as indent
+
+logging.getLogger('trollius').addHandler(logging.StreamHandler())
+
+class MusicPlayer:
+	def __init__(self):
+		self._queue = Queue.Queue()
+		self._isPlaying = False
+		
+		self._lightThread = threading.Thread()
+	    
+		self.config = RawConfigParser()
+		self.config.read('config.cfg')
+		self.s = LightMessenger(self.config)
+		
+		pygame.init()
+		pygame.mixer.init()
+		
+	def send_lighting(self, musicName):
+		txt = open(musicName + str("-os.txt"), "r")
+		
+		osDur = [0.0]
+		freq = []
+		data = [float(line.split()[0])for line in txt]
+
+		for i in data:
+			osDur.append(i)
+		txt.close()
+	
+		txt = open(musicName + str("-freq.txt"), "r")
+		data = [float(line.split()[1])for line in txt]
+	
+		for j in data:
+			freq.append(j)
+	
+		avefq = int(sum(freq)/len(freq)) 
+		print "music:", musicName,"avefq:",avefq
+	
+		txt.close()		
+		g = (avefq - 100) / 10
+		r = avefq / 30
+		b = (100 - avefq) / 10
+		startingColors = [int((15+r)/1.5),int((10+g)/1.5), int((10+b)/1.5)]
+		print "startingCOlors:",startingColors
+
+		
+		for i in range(0,3):
+			if startingColors[i] < 0:
+				startingColors[i] = 6
+	
+		if not self._lightThread.isAlive():
+			self.s = LightMessenger(self.config)
+			self._lightThread = threading.Thread(target = self.s.start, args = (osDur, startingColors,))
+			self._lightThread.start()
+			print "lightThread started"
+		else:
+			print "lightThread is still alive"
+		
+		return
+		
+	def play_music(self, musicName, preEmptive):
+		print "**** play: ",musicName
+		if not preEmptive:
+			self._queue.put(musicName)
+		
+			if not self._isPlaying:
+				self._isPlaying = True
+				while not self._queue.empty():
+					name = self._queue.get()
+					print "trying to play ",name
+					
+					self.send_lighting(name)
+					print "music name:",name + "-music.mp3"
+					pygame.mixer.music.load(name + "-music.mp3")
+					print "between load and play"
+					pygame.mixer.music.play()
+					while pygame.mixer.music.get_busy():
+					   try:
+						time.sleep(0.2)
+					   except KeyboardInterrupt:
+						print "hahahahahahah~~~~~~~"
+						sys.exit(1)
+					#pygame.mixer.music.stop()
+			
+					
+					
+				self._isPlaying = False
+		return
+		
+class SongHandler:
+
+	def __init__(self):
+
+		self._device = "PC1"
+		self._playPrefix = Name("/ndn/edu/ucla/remap/music/play")
+		self.prefix = self._playPrefix.append(self._device)
+		
+		self._face = None
+		self._loop = None
+	
+		self._keyChain = KeyChain()
+		self._certificateName = self._keyChain.getDefaultCertificateName()
+
+		self._repoCommandPrefix = "/example/repo/1"
+
+		self.mp = MusicPlayer()
+		#self._getFiles = []
+		
+	def start(self):
+		self._loop = asyncio.get_event_loop()
+		self._face = ThreadsafeFace(self._loop,"")
+		self._face.setCommandSigningInfo(self._keyChain, self._certificateName)
+		self._face.registerPrefix(self.prefix, self.onPlayingCommand, self.onRegisterFailed)
+	
+		try:
+			self._loop.run_forever()
+		except KeyboardInterrupt:
+			sys.exit()
+		finally:
+			self.stop()
+
+	def stop(self):
+		self._loop.close()	
+		self._face.shutdown()
+		sys.exit(1)
+
+	def getOnset(self, musicName):
+		otxt = musicName + str("-o")
+		print otxt
+		g = GetFile(self._repoCommandPrefix, otxt, self._face, self.getFreq, musicName)
+		g.oStream = open(musicName + str("-os.txt"), 'wb')
+		g.start()
+		
+		#self._getFiles.append(g)
+
+	def getFreq(self, musicName):
+		ftxt = musicName + str("-f")
+		print musicName, " get Freq called"
+		g = GetFile(self._repoCommandPrefix, ftxt, self._face, self.mp.play_music, musicName, False)
+		g.oStream = open(musicName + str("-freq.txt"),'wb')
+		g.start()
+		
+		#self._getFiles.append(g)
+
+	def signData(self, data):
+		data.setSignature(Sha256WithRsaSignature())
+	
+	def onPlayingCommand(self, prefix, interest, transport, prefixId):
+		
+		interestName = Name(interest.getName())
+		commandComponent = interest.getName().get(self.prefix.size())
+		if commandComponent == Name.Component("stop"):
+			pass
+		if commandComponent == Name.Component("play"):
+			pass
+		else:
+			songName = commandComponent.toEscapedString()
+	    
+		songList = []
+		songList = songName.split('%2C')
+	    
+		for i in songList:
+			fmusic = i + str("-music.mp3") 
+			print "started getting music file", i
+			
+			g = GetFile(self._repoCommandPrefix, i, self._face, self.getOnset, i)
+			
+			g.oStream = open(fmusic,'wb')
+			g.start()
+			
+			#self._getFiles.append(g)
+			
+		d = Data(interest.getName())
+		d.setContent("start to play: " + songName + "\n")
+		encodedData = d.wireEncode()
+		transport.send(encodedData.toBuffer())	
+
+	def onRegisterFailed(self, prefix):
+		self.log.error("Could not register " + prefix.toUri())
+		self.stop()
+
+if __name__ == '__main__':
+	logging.basicConfig()
+	sh = SongHandler()
+	sh.start()
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
