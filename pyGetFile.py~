@@ -19,13 +19,10 @@ from pyndn.security import KeyChain
 
 class GetFile:
 
-    def __init__(self, repoCommandPrefix, dataName, songHandlerFace, playFunction):
-        self._repoCommandPrefix = Name("ndn:/example/repo/1")       
+    def __init__(self, repoCommandPrefix, dataName, songHandlerFace, playFunction, *args):
+        
+        self._repoCommandPrefix = Name(repoCommandPrefix)       
         self._dataName = Name(dataName)
-	self.txtName = dataName + str("-o")
-	self.freqName = dataName + str("-f")
-	self._txtName = Name(self.txtName)
-	self._freqName = Name(self.freqName) 
 
         self._interestLifetime = 1000
         self.m_timeout = 100
@@ -36,16 +33,18 @@ class GetFile:
         self.m_mustBeFresh = False
 
         self._face = songHandlerFace
-        #self._loop = None
         
         self._keyChain = KeyChain()
         self._certificateName = self._keyChain.getDefaultCertificateName()
         
         self.oStream = None
         self._writtenSegment = 0
-	self._playFunction = playFunction
+        self._playFunction = playFunction
+        self._args = args
 
-	self.zero = None
+        self.zero = None
+
+	self.count = 0
         
     # Just for appending segment number 0, making it encoded as %00%00, instead of %00 in PyNDN.
     # Potential bug/loss of interoperability?
@@ -59,32 +58,16 @@ class GetFile:
         return Name.Component(Blob(value, False))
 
     def start(self):
-        #self._loop = asyncio.get_event_loop()
-        #self._face = ThreadsafeFace(self._loop,"")
-        #self._face.setCommandSigningInfo(self._keyChain, self._certificateName)
-        
         self.zero = GetFile.componentFromSingleDigitNumberWithMarkerCXX(0, 0x00)
-        
         self.startFetchingData(Name(self._dataName).append(self.zero))
-	#self.startFetchingData(Name(self._txtName).append(zero))
-        
-        #try:
-         #   self._loop.run_forever()        
-        #finally:
-            #self.stop()
           
     def stop(self):
-        #self._loop.close()         
-        #self._face.shutdown()
-        #self._face = None
         sys.exit(1)
 
     def startFetchingData(self,name):
-	#print "start fetching:",name.toUri()
         interest = Interest(name)
         interest.setInterestLifetimeMilliseconds(self._interestLifetime)
-        interest.setMustBeFresh(self.m_mustBeFresh)
-        
+        interest.setMustBeFresh(self.m_mustBeFresh)      
         self._face.expressInterest(interest, self.onFirstData, self.onTimeout)
         
 
@@ -101,7 +84,6 @@ class GetFile:
         #print dataName.toUri()
         
         if(dataName.size() != self._dataName.size() + 1):
-            #print dataName.size(),self._dataName.size()+1
             raise Exception("unexpected data name size.")
         segment = dataName[-1].toSegment()
 
@@ -119,7 +101,10 @@ class GetFile:
         finalBlockId = data.getMetaInfo().getFinalBlockID()
         
         # These comparisons are apparently wrong
-        print "finalBlockID,Name[-1]",finalBlockId.toEscapedString(), dataName[-1].toSegment()
+	if self.count >100:
+        	print "finalBlockID,Name[-1]",finalBlockId.toEscapedString(), dataName[-1].toSegment()
+		self.count -= 100
+	self.count +=1
         if (finalBlockId == dataName[-1].toSegment()):
             # Reach EOF
             print "INFO: End of file is reached."
@@ -173,26 +158,38 @@ class GetFile:
             print "TIMEOUT: abort fetching after",(MAX_RETRY),"times of retry"
             # Probably want to close file after it finished writing
             self.oStream.close()
-	    '''print "after close stream"
-	    self.oStream = open(dataName+str("-os.txt"),'wb')
-	    print"before start fetching ostxt",dataName+str("-os.txt"),
-	    self.startFetchingData(Name(self._txtName).append(self.zero))
-	    self.oStream.close()
-	    self.oStream = open(dataName+str("-freq.txt"),'wb')
-	    self.startFetchingData(Name(self._freqName).append(self.zero))
-	    self.oStream.close()'''
-	    self._playFunction()
+            self._playFunction(*self._args)
 	 
-    	    
+def callbackFunc(repoCommandPrefix, dataName, face, callback):
+    print "callback called"
+    g1 = GetFile(repoCommandPrefix, dataName, face, callback)
+    
+    musicOutputFile = "PC3-received-2.txt"
+    g1.oStream = open(musicOutputFile, 'wb')
+    g1.start()
+
+def callback2():
+    print "it works again"
 
 if __name__ == '__main__':
     logging.basicConfig()
     #songList = ['Hotel California', 'river flows in you', 'simple way', 'star', 'mozart', 'yellow', 'canon', 'a comm amour', 'RICHA', 'merry christmas', 'love story', 'juliet', 'geqian', 'nocturne', 'RICHA1111', 'canon1', 'nocturne1', 'house_lo', 'house_lo']
     #for i in songList:
-    dataName = "/example/data/1/PC35"
+    dataName = "/clear"
     repoCommandPrefix = "/example/repo/1"
-    g = GetFile(repoCommandPrefix, dataName)
+    
+    loop = asyncio.get_event_loop()
+    face = ThreadsafeFace(loop, "")
+    keyChain = KeyChain()
+    certificateName = keyChain.getDefaultCertificateName()
+    face.setCommandSigningInfo(keyChain, certificateName)
+        
+    g = GetFile(repoCommandPrefix, dataName, face, callbackFunc(repoCommandPrefix, "/clear-f", face, callback2))
     
     musicOutputFile = "PC3-received.txt"
     g.oStream = open(musicOutputFile, 'wb')
     g.start()
+    
+    
+    print "it works"
+    loop.run_forever()

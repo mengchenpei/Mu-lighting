@@ -40,9 +40,9 @@ class LightMessenger:
         self.loop = None
 
         self.currentColor = (0,0,0)
-	#self.transitionColor = (0,0,0)
+
 	self.offColor = (0,0,0)
-	#self.nearColor = (0,0,0)
+
 	self.osDur=[]
 	self.freq = []
 
@@ -57,22 +57,12 @@ class LightMessenger:
         delta = datetime.datetime.utcnow() - epoch
         return delta.total_seconds() * 1000.0
 
-  #  @asyncio.coroutine
+
     def issueLightingCommand(self,osDur,startingColors):
 
 	initialColors = startingColors
 	command2 = self.createLightingCommand(self.offColor)
-	#command3 = self.createLightingCommand(self.nearColor)
-	#aveFq = sum(freq)/len(freq)
-	#s.currentColor = (5,5,8)
-	
-	#command = self.createLightingCommand(self.currentColor)
-	#mi = min(startingColors[0],startingColors[1],startingColors[2])	
-	#if mi<6:
-		#startingColors = [startingColors[0]+(6-mi),startingColors[1]+(6-mi),startingColors[2]+(6-mi)]
-	#mi = min(startingColors[0],startingColors[0],startingColors[2])	
-	#print startingColors	
-	#print "mi=",mi
+
 	#sending Interest at every onset point
 
 	# zhehao: generate the set of commands; we only need to do it once outside the main loop
@@ -81,20 +71,24 @@ class LightMessenger:
 	
 		self.currentColor = tuple(startingColors)
 		#command = self.createLightingCommand(self.currentColor)
+		
+		startingColors[0] -= int((initialColors[0])/(self.transStates-1))
+		startingColors[1] -= int((initialColors[1])/(self.transStates-2))
+		startingColors[2] -= int((initialColors[2])/(self.transStates+1))
 		for j in range(0,3):
-			startingColors[j] -= int((initialColors[j]+self.transStates-1)/self.transStates)
 			if startingColors[j]<=0:
 				startingColors[j] = 0
 		self.commands.append(self.createLightingCommand(self.currentColor))
 		print "!!!!!!currentColor",self.currentColor
 	sendTimeFile = open('interestExpressTime', 'w')
 	#print len(osDur)
+	print "before sending lighting command",datetime.datetime.now()
 	for i in range(1,len(osDur)): 		
 		
 		#print datetime.datetime.now()
 		diff = osDur[i]-osDur[i-1]
 		#print diff/2
-		if(diff>=1):
+		if(diff>=0.7):
 			for j in range(0,self.transStates):
 				#print s.currentColor
 				sendTimeFile.write('{0:f}'.format(self.unix_time_now()) + '\n')
@@ -105,22 +99,22 @@ class LightMessenger:
 			self.lightFace.expressInterest(command2, self.onLightingResponse, self.onLightingTimeout)
 			#print datetime.datetime.now()
 			time.sleep((osDur[i]-osDur[i-1])/2)
-		elif(0.5<diff<1):
+		elif(0.35<diff<0.7):
 			sendTimeFile.write('{0:f}'.format(self.unix_time_now()) + '\n')
-			self.lightFace.expressInterest(self.commands[2], self.onLightingResponse, self.onLightingTimeout) 
+			self.lightFace.expressInterest(self.commands[0], self.onLightingResponse, self.onLightingTimeout) 
 			print"self.commands[2]",self.commands[j].toUri()
 			time.sleep((diff)/2)
 			sendTimeFile.write('{0:f}'.format(self.unix_time_now()) + '\n')
-			self.lightFace.expressInterest(self.commands[self.transStates-1], self.onLightingResponse, self.onLightingTimeout)
+			self.lightFace.expressInterest(self.commands[self.transStates-2], self.onLightingResponse, self.onLightingTimeout)
 			#print datetime.datetime.now()
 			time.sleep((osDur[i]-osDur[i-1])/2)
-		elif(0.15<diff<0.5):
+		elif(0.15<diff<0.35):
 			sendTimeFile.write('{0:f}'.format(self.unix_time_now()) + '\n')
-			self.lightFace.expressInterest(self.commands[0], self.onLightingResponse, self.onLightingTimeout) 
+			self.lightFace.expressInterest(self.commands[2], self.onLightingResponse, self.onLightingTimeout) 
 			print"self.commands[0]",self.commands[j].toUri()
 			time.sleep((diff)/2)
 			sendTimeFile.write('{0:f}'.format(self.unix_time_now()) + '\n')
-			self.lightFace.expressInterest(self.commands[self.transStates-2], self.onLightingResponse, self.onLightingTimeout)
+			self.lightFace.expressInterest(self.commands[self.transStates-1], self.onLightingResponse, self.onLightingTimeout)
 			#print datetime.datetime.now()
 			time.sleep((osDur[i]-osDur[i-1])*30/61)
 		else:

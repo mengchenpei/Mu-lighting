@@ -14,7 +14,7 @@ from pyndn.security import KeyChain
 import trollius as asyncio
 
 currentList=[]
-	
+
 
 class CheckList(object):
 
@@ -63,28 +63,31 @@ if __name__ == '__main__':
     	currentList.append(s)
     print currentList
 
+ 
     #put the local file(music data, onset data and frequency data) to repo
     faceWrapper = ThreadsafeFaceWrapper()
     for i in currentList:
 	musicFile = i+str(".mp3")
 	p = PutFile(Name(i), Name("ndn:/example/repo/1"), faceWrapper.getFace(), faceWrapper.getLoop())
-    	p.insertStream = open(str("./music-file/")+musicFile, 'rb')
-    	p.fileSize = os.stat(str("./music-file/")+musicFile).st_size    
+    	p.insertStream = open(str("music-file/")+musicFile, 'rb')
+    	p.fileSize = os.stat(str("music-file/")+musicFile).st_size    
     	p.start()
 	
 	
 
 	osFile = i+str("-o.txt")
 	of = PutFile(Name(i+str("-o")), Name("ndn:/example/repo/1"), faceWrapper.getFace(), faceWrapper.getLoop())
-    	of.insertStream = open(str("./music-file/")+osFile, 'rb')
-    	of.fileSize = os.stat(str("./music-file/")+osFile).st_size    
+    	of.insertStream = open(str("music-file/")+osFile, 'rb')
+    	of.fileSize = os.stat(str("music-file/")+osFile).st_size    
     	of.start()
 
 	freqFile = i+str(".txt")
 	fq = PutFile(Name(i+str("-f")), Name("ndn:/example/repo/1"), faceWrapper.getFace(), faceWrapper.getLoop())
-    	fq.insertStream = open(str("./music-file/")+freqFile, 'rb')
-    	fq.fileSize = os.stat(str("./music-file/")+freqFile).st_size    
+    	fq.insertStream = open(str("music-file/")+freqFile, 'rb')
+    	fq.fileSize = os.stat(str("music-file/")+freqFile).st_size    
     	fq.start()
+
+
 
 	
     #keep updating the temporary list
@@ -93,7 +96,4 @@ if __name__ == '__main__':
     #t.start()
 
 	 # Always call this when everything else is done, since it blocks in run_forever
-    faceWrapper.startProcessing()	
-
-
-
+    faceWrapper.startProcessing()

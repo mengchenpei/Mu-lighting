@@ -43,6 +43,8 @@ class GetFile:
         self._args = args
 
         self.zero = None
+
+	self.count = 0
         
     # Just for appending segment number 0, making it encoded as %00%00, instead of %00 in PyNDN.
     # Potential bug/loss of interoperability?
@@ -99,7 +101,10 @@ class GetFile:
         finalBlockId = data.getMetaInfo().getFinalBlockID()
         
         # These comparisons are apparently wrong
-        #print "finalBlockID,Name[-1]",finalBlockId.toEscapedString(), dataName[-1].toSegment()
+	if self.count >1000:
+        	print "finalBlockID,Name[-1]",finalBlockId.toEscapedString(), dataName[-1].toSegment()
+		self.count -= 1000
+	self.count +=1
         if (finalBlockId == dataName[-1].toSegment()):
             # Reach EOF
             print "INFO: End of file is reached."
@@ -147,10 +152,10 @@ class GetFile:
         self.m_retryCount += 1
         if(self.m_retryCount <= MAX_RETRY):
             self.fetchData(interest.getName())
-            #print"TIMEOUT: retransmit interest..."
+            print"TIMEOUT: retransmit interest..."
         else:
-            #print "TIMEOUT: last interest sent for segment",(self.m_nextSegment - 1)
-            #print "TIMEOUT: abort fetching after",(MAX_RETRY),"times of retry"
+            print "TIMEOUT: last interest sent for segment",(self.m_nextSegment - 1)
+            print "TIMEOUT: abort fetching after",(MAX_RETRY),"times of retry"
             # Probably want to close file after it finished writing
             self.oStream.close()
             self._playFunction(*self._args)

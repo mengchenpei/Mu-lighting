@@ -14,7 +14,7 @@ from pyndn.security import KeyChain
 import trollius as asyncio
 
 currentList=[]
-	
+
 
 class CheckList(object):
 
@@ -63,6 +63,7 @@ if __name__ == '__main__':
     	currentList.append(s)
     print currentList
 
+ 
     #put the local file(music data, onset data and frequency data) to repo
     faceWrapper = ThreadsafeFaceWrapper()
     for i in currentList:
@@ -86,6 +87,8 @@ if __name__ == '__main__':
     	fq.fileSize = os.stat(str("music-file/")+freqFile).st_size    
     	fq.start()
 
+
+
 	
     #keep updating the temporary list
     #t = threading.Thread(target = CheckList.list_check(currentList), args = (currentList,))
@@ -93,7 +96,4 @@ if __name__ == '__main__':
     #t.start()
 
 	 # Always call this when everything else is done, since it blocks in run_forever
-    faceWrapper.startProcessing()	
-
-
-
+    faceWrapper.startProcessing()

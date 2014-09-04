@@ -32,6 +32,7 @@ class ThreadsafeFaceWrapper(object):
         self._keyChain = KeyChain()
         self._certificateName = self._keyChain.getDefaultCertificateName()
         self._face.setCommandSigningInfo(self._keyChain, self._certificateName)
+	
         
     def startProcessing(self):
         try:
@@ -72,6 +73,9 @@ class PutFile:
         self.fileSize = 0
         
         self._segmentSize = 1000
+	self._endBlockId = 0
+
+	self._count = 0
 
     def start(self):
         self._face.registerPrefix(self._dataName,self.onInterest,self.onRegisterFailed)
@@ -120,7 +124,7 @@ class PutFile:
             # Original one:
             #d = Data(Name(self._dataName).append(self._currentSegmentNo))
             
-            #print "Given data name", d.getName().toUri(), " Segment no", self._currentSegmentNo
+            print "Given data name", d.getName().toUri(), " Segment no", self._currentSegmentNo
             
             d.setContent(buffer)
             self._keyChain.sign(d, self._certificateName)
@@ -138,16 +142,17 @@ class PutFile:
         # Adding endBlockID so that repo does not crash on putfile
         # should be replaced by FinalBlockID in data.metainfo, once that's fixed
         parameters.setEndBlockId(math.trunc(self.fileSize/self._segmentSize))
-        print (math.trunc(self.fileSize / self._segmentSize))
+        #print (math.trunc(self.fileSize / self._segmentSize))
+	self._endBlockId = math.trunc(self.fileSize / self._segmentSize)
         
         commandInterest = self.generateCommandInterest(self._repoCommandPrefix, "insert", parameters)
         self._face.makeCommandInterest(commandInterest)
-        print commandInterest.getName().toUri()
+        #print commandInterest.getName().toUri()
         
         self._face.expressInterest(commandInterest,self.onInsertCommandResponse, self.onInsertCommandTimeout)
 
     def onInsertCommandResponse(self,interest,data):
-        print "receive the data of command interest"
+        #print "receive the data of command interest"
         pass
         
     def onInsertCommandTimeout(self,interest):
@@ -155,11 +160,14 @@ class PutFile:
         sys.exit(1)
 
     def onInterest(self,prefix,interest,transport,registeredPrefixId):  
-        print "enter the onInterest"    
+        #print "enter the onInterest"    
         if (interest.getName().size() != prefix.size() + 1):
             print "Unrecognized Interest"
             sys.exit(1)
-        print interest.getName().toUri()
+	if self._count >1000:
+        	print interest.getName().toUri()
+		self._count -=1000
+	self._count +=1
         segmentComponent = interest.getName().get(prefix.size())
         segmentNo = segmentComponent.toSegment()
         
@@ -170,6 +178,8 @@ class PutFile:
             print "requested segment does not exist, or is not prepared"
             return
             #sys.exit(1)
+
+	
 	
         
         item = self._mData[segmentNo]
