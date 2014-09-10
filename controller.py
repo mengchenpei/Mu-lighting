@@ -1,3 +1,12 @@
+#!/usr/bin/env python
+#coding=utf-8
+
+# Get the song list and send out song request
+#
+# code by Mengchen
+# Aug 21, 2014
+#
+
 import sys
 import time
 from pyndn import Name, Data, Interest, ThreadsafeFace, Exclude,Blob
@@ -5,40 +14,33 @@ from pyndn.security import KeyChain
 import trollius as asyncio
 import logging
 import thread,threading
-songList = []
+
+
+#To collect song lists of every storage device
 class ListRequiry:
     
     def __init__(self,skeychain,sloop,sface):
         logging.basicConfig()
-        self.keychain = skeychain
-        
+        self.keychain = skeychain        
         self.listPrefix = "/ndn/broadcast/mulighting/list"
         self.listPrefixName = Name(self.listPrefix)
         self.face = sface
         self.loop = sloop
-
         self.totalList = []
-        #self.tempList = []
 
-        #self.deviceList = []
-
-        #self.listUpdate = False
 
     def issueListCommand(self,excludeDevice=None):
         if excludeDevice == None:
                 interestName = Name(self.listPrefix)
-                        
+        #when the controller receive the list from a storage device, it will exclude it from broadcast list.                 
         else:
                 interestName = Name(self.listPrefix).append(str("exc")+excludeDevice)
 
         command = Interest(interestName)
         command.setInterestLifetimeMilliseconds(4000)
-        print "interestName:", interestName.toUri()
         self.face.expressInterest(command,self.onListResponse,self.onListTimeout)
-        print "after send interest"
-  
-        
-
+       
+	#When the controller does not receive any song list for a while, it will assume that the list has been updated.
     def onListTimeout(self, interest=None):
         print "The song list has been updated!"
 	print "********************Current Song List***********************"
@@ -48,13 +50,14 @@ class ListRequiry:
         
     
     def onListResponse(self, interest, data):
-        print "receive data"
+        
         tempCont = data.getContent()
-        print "temList:",tempCont
         tempStr = tempCont.__str__()
-        time.sleep(1)
+	#sleep for 1 sec therefore we can run more important process in the threadSafeFace        
+	time.sleep(1)
         tempList = tempStr.split(",")
-        for i in tempList:
+	#add songs to song list        
+	for i in tempList:
                 self.totalList.append(i)
         print "List Update:",self.totalList
         dataName = Name(data.getName())
@@ -70,13 +73,12 @@ class ListRequiry:
         self.issueListCommand()
         
 
-        #asyncio.Task(self.issueListCommand())
+#handle the process of ordering song
 class SongHandler:
 
     def __init__(self,skeychain,sloop,sface,songList):
         logging.basicConfig()
         self.keychain = skeychain
-        #self.certificateName = self.keychain.getDefaultCertificateName()
         self.listPrefix = "/ndn/edu/ucla/remap/music/play"
         self.face = sface
         self.loop = sloop
@@ -160,9 +162,6 @@ class SongHandler:
         self.face.shutdown()
 
     def start(self):
-        #self.loop = asyncio.get_event_loop()
-        #self.face = ThreadsafeFace(self.loop, "")
-        #self.face.setCommandSigningInfo(self.keychain, self.certificateName) 
         self.songName = raw_input("Song Name(each song separated by a comma): ")
         self.device = raw_input("Music Player: ")
         self.issueSongCommand()
@@ -189,14 +188,13 @@ if __name__ == '__main__':
         #obtaining song list
         lq = ListRequiry(skeychain,sloop,sface)
         lq.start()
+	songList = []
 	songList = lq.onListTimeout()
-        #wait for 15 sec
+        #wait for 10 sec 
         time.sleep(10)
         #order song
         sh  = SongHandler(skeychain,sloop,sface,songList)
         sh.start()
-
-        #print "haha"
-        
+      
         while True:
             time.sleep(10)

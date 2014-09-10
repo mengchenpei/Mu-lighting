@@ -1,4 +1,12 @@
-from pyPutFile import ThreadsafeFaceWrapper,PutFile
+#!/usr/bin/env python
+#coding=utf-8
+
+# scan file, find music data and insert them to repo
+#
+# code by Mengchen
+# Aug 21, 2014
+#
+
 
 import sys 
 import os
@@ -11,22 +19,21 @@ from pyndn import Name,Interest,ThreadsafeFace,Sha256WithRsaSignature
 from pyndn import Data
 from pyndn import Face
 from pyndn.security import KeyChain
+from pyPutFile import ThreadsafeFaceWrapper,PutFile
 import trollius as asyncio
 
 currentList=[]
 
+#reply the song list when receive the list collection request from controller
 class RegisterSongList(object):
 
 
     def __init__(self,sFace,sLoop,skeychain,scertificateName,prefix="/ndn/edu/ucla/remap/music/list"):
-
 	logging.basicConfig()        
     	self.device = "PC1"
     	self.deviceComponent = Name.Component(self.device)
 	self.excludeDevice = None
-
         self.listPrefix = Name(prefix)
-
         self.address = ""
         self._isStopped = True
 
@@ -34,11 +41,8 @@ class RegisterSongList(object):
 	self.loop = sLoop
 	self.keychain = skeychain
 	self.certificateName = scertificateName
-  
-
     
     def start(self):
-
         self.face.registerPrefix(self.listPrefix,self.onInterest,self.onRegisterFailed)
 
     def stop(self):
@@ -60,8 +64,7 @@ class RegisterSongList(object):
         try:
 	    if(initInterest == self.listPrefix):
 	    
-		print "initial db,start to set data's content"
-                
+		#receive the .../list interest
 		currentString = ','.join(currentList)
 		d.setContent(currentString)
 		encodedData = d.wireEncode()
@@ -69,14 +72,11 @@ class RegisterSongList(object):
 		print d.getName().toUri()
 		print d.getContent()
 		
-		
-		
             else:
 		self.excludeDevice = initInterest.get(self.listPrefix.size())
 		excDevice = self.excludeDevice.toEscapedString()
 		if(excDevice != str("exc")+self.device):
-			print "not init db,start to set data's content"
-                
+			# receive the .../list/excOther interest                
 			currentString = ','.join(currentList)
 			d.setContent(currentString)
 			encodedData = d.wireEncode()
@@ -85,8 +85,8 @@ class RegisterSongList(object):
 			print d.getContent()
 			
 		else:
-			
-			print"controller has exclude me, I have to remove register!!!!!!!"
+			# receive the .../list/excMe interest
+			print"controller has exclude me, I have to remove register!"
                 	self.face.removeRegisteredPrefix(registeredPrefixId)
 			time.sleep(30)
 			print"register again"
@@ -113,6 +113,7 @@ class CheckList(object):
     listDelete = []
     listAdd = []
     @staticmethod
+	#scan the file and get the most updated song list
     def scan_files(directory,fprefix=None,fpostfix=None):
         files_list=[]
      
@@ -130,6 +131,7 @@ class CheckList(object):
         return files_list
    
     @staticmethod
+	#detect if the song list has been updated
     def list_check(currentList):
         setA=set(currentList)
         while True:

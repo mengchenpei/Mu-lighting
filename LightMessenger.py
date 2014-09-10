@@ -1,5 +1,11 @@
-# THIS IS NOT USING A REPO YET
-# TODO: put query interval in config
+#!/usr/bin/env python
+#coding=utf-8
+
+# send out lighting list according to the metadata of song
+#
+# code by Mengchen
+# Aug 21, 2014
+#
 
 from sys import argv #for song's title input
 from pyndn import Name, Data, Interest, Face, Exclude
@@ -7,6 +13,9 @@ from pyndn.security import KeyChain
 from ConfigParser import RawConfigParser
 from lighting.light_command_pb2 import LightCommandMessage
 from random import randrange
+from trollius import Return, From
+script = argv #for music input
+from pyndn.encoding import ProtobufTlv
 
 import pygame #to play the song
 import logging
@@ -15,15 +24,8 @@ import time
 import thread
 import datetime
 import threading
-
-from pyndn.encoding import ProtobufTlv
-
-#try:
-#    import asyncio
-#except ImportError:
 import trollius as asyncio
-from trollius import Return, From
-script = argv #for music input
+
 
 
 logging.getLogger('trollius').addHandler(logging.StreamHandler())
@@ -33,25 +35,17 @@ class LightMessenger:
 
         self.keychain = KeyChain()
         self.lightAddress = config.get('lighting', 'address')
-
         self.lightPrefix = config.get('lighting', 'prefix')
-
         self.lightFace = None
         self.loop = None
-
         self.currentColor = (0,0,0)
-
 	self.offColor = (0,0,0)
-
 	self.osDur=[]
 	self.freq = []
-
         self.certificateName = self.keychain.getDefaultCertificateName()
-    
-        # zhehao: omg the ugliness of on/off...let's try 6 states instead
 	self.commands = []
 	self.transStates = 6
-	#self.transValue = 1
+
     def unix_time_now(self):
         epoch = datetime.datetime.utcfromtimestamp(0)
         delta = datetime.datetime.utcnow() - epoch
@@ -62,16 +56,12 @@ class LightMessenger:
 
 	initialColors = startingColors
 	command2 = self.createLightingCommand(self.offColor)
-
 	#sending Interest at every onset point
-
-	# zhehao: generate the set of commands; we only need to do it once outside the main loop
+	#zhehao: generate the set of commands; we only need to do it once outside the main loop
 	
 	for i in range(0,self.transStates):
 	
 		self.currentColor = tuple(startingColors)
-		#command = self.createLightingCommand(self.currentColor)
-		
 		startingColors[0] -= int((initialColors[0])/(self.transStates-1))
 		startingColors[1] -= int((initialColors[1])/(self.transStates-2))
 		startingColors[2] -= int((initialColors[2])/(self.transStates+1))
@@ -79,21 +69,18 @@ class LightMessenger:
 			if startingColors[j]<=0:
 				startingColors[j] = 0
 		self.commands.append(self.createLightingCommand(self.currentColor))
-		print "!!!!!!currentColor",self.currentColor
+	#we use a file to record the time when the interest is sending to monitor the time of ndn transmission
 	sendTimeFile = open('interestExpressTime', 'w')
-	#print len(osDur)
-	print "before sending lighting command",datetime.datetime.now()
+)
 	for i in range(1,len(osDur)): 		
 		
-		#print datetime.datetime.now()
 		diff = osDur[i]-osDur[i-1]
-		#print diff/2
 		if(diff>=0.7):
 			for j in range(0,self.transStates):
-				#print s.currentColor
+				
 				sendTimeFile.write('{0:f}'.format(self.unix_time_now()) + '\n')
 	 			self.lightFace.expressInterest(self.commands[j], self.onLightingResponse, self.onLightingTimeout)
-				print"self.commands[j]",self.commands[j].toUri()
+				# the lighting
 				time.sleep((osDur[i]-osDur[i-1])/2/self.transStates)
 			sendTimeFile.write('{0:f}'.format(self.unix_time_now()) + '\n')
 			self.lightFace.expressInterest(command2, self.onLightingResponse, self.onLightingTimeout)
